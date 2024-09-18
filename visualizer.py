@@ -13,14 +13,14 @@ class ModularVisualizer:
             "P5": (self.w, 3 * self.l / 4), "P6": (self.w, self.l / 4)
         }
         plt.ion()
+      
 
     def visualize_configuration(self, state):
         plt.close()
         fig, ax = plt.subplots()
-        if state == frozenset():
-            plt.cla
+        plt.axis('off')
         
-        module_pos = {}  # Stores the positions and orientations of modules
+        module_pos = {} 
         for i, connection in enumerate(state):
             element1, element2 = connection
             parts = element1.split('_') + element2.split('_')  # ['M1', 'P1', 'M2', 'P5', 'O1']
@@ -28,6 +28,10 @@ class ModularVisualizer:
             # Determine which module is already defined
             moduleA, portA, moduleB, portB = parts[0], parts[1], parts[2], parts[3]
 
+            if "M0" in [moduleA, moduleB] and i == 0:
+                module_pos = {"M0": (0, -2, 0)}  
+                self.draw_module(ax, module_pos["M0"], 'M0', 'P4')
+            
             if moduleA in module_pos:
                 moduleA_pos = module_pos[moduleA]
                 # Module A is already positioned, calculate position for module B
@@ -58,7 +62,7 @@ class ModularVisualizer:
         
         ax.figure.canvas.draw()
         ax.figure.canvas.flush_events()
-        plt.pause(0.1)
+        plt.pause(0.2)
         
 
     def draw_module(self, ax, pos, module, port):
@@ -71,7 +75,7 @@ class ModularVisualizer:
         # Apply rotation transformation
         
         if orientation == 1:
-            t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, -90) + ax.transData
+            t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, 90) + ax.transData
             rect.set_transform(t)
 
             rect.set_xy((x, y))
@@ -79,12 +83,12 @@ class ModularVisualizer:
             ax.add_patch(rect)
             #for port, (dx, dy) in self.portPos.items():
                 #ax.text(x - dy + , y + dx + port_dx, port, ha='center', va='center', fontsize=8)
-            ax.text(x + width , y + height, module, ha='center', va='center')
+            ax.text(x + width * 2, y + height, module, ha='center', va='center')
         
         else:
             ax.add_patch(rect)
             for port, (dx, dy) in self.portPos.items():
-                ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=8)
+                ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=6, color='black')
             ax.text(x +  width / 2 , y + height / 2 , module, ha='center', va='center')
 
 
