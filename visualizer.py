@@ -17,7 +17,9 @@ class ModularVisualizer:
     def visualize_configuration(self, state):
         plt.close()
         fig, ax = plt.subplots()
-
+        if state == frozenset():
+            plt.cla
+        
         module_pos = {}  # Stores the positions and orientations of modules
         for i, connection in enumerate(state):
             element1, element2 = connection
@@ -69,7 +71,7 @@ class ModularVisualizer:
         # Apply rotation transformation
         
         if orientation == 1:
-            t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, 90) + ax.transData
+            t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, -90) + ax.transData
             rect.set_transform(t)
 
             rect.set_xy((x, y))
@@ -77,7 +79,7 @@ class ModularVisualizer:
             ax.add_patch(rect)
             #for port, (dx, dy) in self.portPos.items():
                 #ax.text(x - dy + , y + dx + port_dx, port, ha='center', va='center', fontsize=8)
-            #ax.text(x - width + port_dy, y + height / 2 + port_dx, module, ha='center', va='center')
+            ax.text(x + width , y + height, module, ha='center', va='center')
         
         else:
             ax.add_patch(rect)
@@ -100,8 +102,7 @@ class ModularVisualizer:
         # Determine if module B should be rotated
         orientationB = orientationA
         if (portA == 'P1' and portB in ['P5', 'P6']) or (portB == 'P4' and portA in ['P2', 'P3']) or (portA == 'P4' and portB in ['P2', 'P3']):
-            orientationB = 1 - orientationA  # Flip module 
-            print(orientationB)
+            orientationB = 1 - orientationA  # Flip module
 
         return moduleB_pos, orientationB, portBPos
 

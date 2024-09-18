@@ -1,7 +1,8 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from visualizer import ModularVisualizer
+from Visualizer import ModularVisualizer
+from read_matrix import read_matrix_from_serial
 import time
 
 from itertools import combinations, product, permutations
@@ -15,6 +16,7 @@ class DynamicDFA:
         self.current_state = None  # Start state
         self.define_connections()
         self.generate_states()
+        self.occupied = {}
        
     def define_connections(self):
         self.femalePorts = ["P1", "P2", "P3"]
@@ -22,14 +24,14 @@ class DynamicDFA:
         self.orientations = ["O1", "O2"]
        
     def generate_states(self):
-        start_state = frozenset()
+        start_state = frozenset({'M0_0'})
         self.states.add(start_state)
         self.current_state = start_state
 
         for num_connected in range(1, self.num_modules + 1):
             for modules in permutations(range(self.num_modules), num_connected):
-                # Generate all possible connections for the given set of modules
-                # print(modules)
+               
+               
                 state_items = [[] for _ in range(len(modules) - 1)]
                 for i, module in enumerate(modules):
                     if i < len(modules) - 1:
@@ -122,12 +124,22 @@ class DynamicDFA:
         actions = []
         for module_idx, row in enumerate(matrix):
             for port_idx, val in enumerate(row):
+                occupied_key = (module_idx, port_idx)
                 if val != 0:
-                    binary_val = format(val, '08b')
-                    port_num = int(binary_val[-3:], 2)
-                    module_num = int(binary_val[:5], 2)
-                    actions.append(f'connect_M{module_idx+1}_P{port_idx+1}_M{module_num}_P{port_num}_O1')
-                    print(f'M{module_idx+1}_P{port_idx+1}_M{module_num}_P{port_num}')
+                    if occupied_key not in self.occupied:
+                        self.occupied[occupied_key] = True
+
+                        binary_val = format(val, '08b')
+                        port_num = int(binary_val[-3:], 2)
+                        module_num = int(binary_val[:5], 2)
+
+                        actions.append(f'connect_M{module_idx+1}_P{port_idx+1}_M{module_num}_P{port_num}_O1')
+                        print(f'M{module_idx+1}_P{port_idx+1}_M{module_num}_P{port_num}')
+                else: 
+                    if occupied_key in self.occupied:
+                        actions.append(f'disconnect_M{module_idx+1}_P{port_idx+1}')
+                        self.occupied.pop(occupied_key)
+        print(actions)
         for action in actions:
             self.perform_action(action)
             time.sleep(.5)
@@ -142,11 +154,12 @@ if __name__ == "__main__":
     dfa.perform_action('connect_M2_P1_M3_P6_O1')
     dfa.perform_action('disconnect_M2_P1')
     time.sleep(10)
-    """
+    
     matrix_example = [[20, 0, 0],
                     [0, 0, 0],
                     [0, 14, 0]
     ]
-
-    dfa.action_config_matrix(matrix_example)
-    time.sleep(10)
+    """
+    while True:
+        matrix = read_matrix_from_serial(port='/dev/cu.usbmodem144201', baudrate=9600)
+        dfa.action_config_matrix(matrix)
