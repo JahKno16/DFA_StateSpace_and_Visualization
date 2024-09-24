@@ -38,19 +38,20 @@ class DynamicDFA:
                         for connections in product(self.femalePorts, self.orientations):
                             fPort, orientation = connections
                             next_module = modules[i + 1]
-                            state_item = (f'M{next_module}_{fPort}', f'M0_P4_{orientation}')
+                            state_item = (f'M{next_module}_{fPort}', f'M0_P0_{orientation}')
                             state_items[i].append(state_item)
 
-                    if i < len(modules) - 1:
-                        for connections in product(self.malePorts, self.femalePorts, self.orientations):
-                            mPort, fPort, orientation = connections
-                            next_module = modules[i + 1]
-                            state_item = (f'M{next_module}_{fPort}', f'M{module}_{mPort}_{orientation}')
-                            state_items[i].append(state_item) 
+                    if i < len(modules) - 1 and i != 0:
+                        for j in range(2, len(modules)):
+                            for connections in product(self.malePorts, self.femalePorts, self.orientations):
+                                mPort, fPort, orientation = connections
+                                next_module = modules[i + 1]
+                                state_item = (f'M{next_module}_{fPort}', f'M{modules[i+j]}_{mPort}_{orientation}')
+                                state_items[i].append(state_item) 
                     for state_combination in product(*state_items):
                         state = frozenset(state_combination)
                         self.add_state(state)
-        #print(self.states)
+       #print(self.states)
 
         # Generate transitions for each state
         for state in list(self.states):
@@ -86,7 +87,7 @@ class DynamicDFA:
         for i in range(self.num_modules):
             for connections in product(self.femalePorts, self.orientations):
                         fPort, orientation = connections
-                        actions.append(f'connect_M{i+1}_{fPort}_M0_P4_{orientation}')
+                        actions.append(f'connect_M{i+1}_{fPort}_M0_P0_{orientation}')
             for j in range(self.num_modules):
                 if i != j:
                     for connections in product(self.malePorts, self.femalePorts, self.orientations):
@@ -103,7 +104,7 @@ class DynamicDFA:
     
         if 'M0' in action:
             module, fPort, orient = parts[1], parts[2], parts[5]
-            state_dict[f'{module}_{fPort}'] = f'M0_P4_{orient}'
+            state_dict[f'{module}_{fPort}'] = f'M0_P0_{orient}'
 
         elif 'disconnect' in action:
             # Module-to-module disconnect
@@ -138,7 +139,9 @@ class DynamicDFA:
             for port_idx, val in enumerate(row):
                 occupied_key = (module_idx, port_idx)
                 if val == 1:
-                    actions.append(f'connect_M{module_idx+1}_P{port_idx+1}_M0_P4_O1')
+                    if occupied_key not in self.occupied:
+                        self.occupied[occupied_key] = True
+                        actions.append(f'connect_M{module_idx+1}_P{port_idx+1}_M0_P0_O1')
                 elif val != 0:
                     if occupied_key not in self.occupied:
                         self.occupied[occupied_key] = True
@@ -177,6 +180,6 @@ if __name__ == "__main__":
                     [0, 12, 0],
                     [0, 0, 0]
             ]
-        matrix = read_matrix_from_serial(port='/dev/cu.usbmodem144201', baudrate=9600)
-        dfa.action_config_matrix(matrix)
+        ##matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
+        dfa.action_config_matrix(matrix_example)
         time.sleep(2)

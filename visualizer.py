@@ -7,10 +7,12 @@ import time
 class ModularVisualizer:
     def __init__(self):
         self.w, self.l = 0.6, 1.2  # Unit width and length
+        self.w_C, self.l_C = 0.6, 0.3
         self.portPos = {
             'P1': (self.w/2, 0), "P2": (0, self.l / 4),
             "P3": (0, 3 * self.l / 4), "P4": (self.w/2, self.l),
-            "P5": (self.w, 3 * self.l / 4), "P6": (self.w, self.l / 4)
+            "P5": (self.w, 3 * self.l / 4), "P6": (self.w, self.l / 4),
+            "P0": (self.w_C/2, self.l_C)
         }
         plt.ion()
       
@@ -20,6 +22,10 @@ class ModularVisualizer:
         fig, ax = plt.subplots()
         plt.axis('off')
         
+        if state == frozenset():
+            module_pos = {"M0": (-self.w_C/2, -2, 0)}  
+            self.draw_module(ax, module_pos["M0"], 'M0', 'P0')
+
         module_pos = {} 
         for i, connection in enumerate(state):
             element1, element2 = connection
@@ -29,8 +35,8 @@ class ModularVisualizer:
             moduleA, portA, moduleB, portB = parts[0], parts[1], parts[2], parts[3]
 
             if "M0" in [moduleA, moduleB] and i == 0:
-                module_pos = {"M0": (0, -2, 0)}  
-                self.draw_module(ax, module_pos["M0"], 'M0', 'P4')
+                module_pos = {"M0": (-self.w_C / 2, -2, 0)}  
+                self.draw_module(ax, module_pos["M0"], 'M0', 'P0')
             
             if moduleA in module_pos:
                 moduleA_pos = module_pos[moduleA]
@@ -56,8 +62,8 @@ class ModularVisualizer:
                 module_pos[moduleB] = (*moduleB_pos, orientationB)
                 self.draw_module(ax, module_pos[moduleB], moduleB, portB)
 
-        ax.set_xlim(-3, 3)
-        ax.set_ylim(-3, 3)
+        ax.set_xlim(-2, 2)
+        ax.set_ylim(-2, 2)
         plt.gca().set_aspect('equal', adjustable='box')
         
         ax.figure.canvas.draw()
@@ -69,8 +75,12 @@ class ModularVisualizer:
         x, y, orientation = pos
         width, height = self.w, self.l
         port_dx, port_dy = port
+
         # Create rectangle patch
-        rect = patches.Rectangle((x, y), width, height, edgecolor='blue', facecolor='lightblue')
+        if module == "M0":
+            rect = patches.Rectangle((x, y), self.w_C, self.l_C, edgecolor='black', facecolor='yellow')
+        else:
+            rect = patches.Rectangle((x, y), width, height, edgecolor='blue', facecolor='lightblue')
 
         # Apply rotation transformation
         
@@ -83,13 +93,17 @@ class ModularVisualizer:
             ax.add_patch(rect)
             #for port, (dx, dy) in self.portPos.items():
                 #ax.text(x - dy + , y + dx + port_dx, port, ha='center', va='center', fontsize=8)
-            ax.text(x + width * 2, y + height, module, ha='center', va='center')
+            ax.text(x - width/2, y + 3*width/4, module, ha='center', va='center')
         
         else:
-            ax.add_patch(rect)
-            for port, (dx, dy) in self.portPos.items():
-                ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=6, color='black')
-            ax.text(x +  width / 2 , y + height / 2 , module, ha='center', va='center')
+            if module != "M0":
+                ax.add_patch(rect)
+                for port, (dx, dy) in self.portPos.items():
+                    ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=8, color='black')
+                ax.text(x +  width / 2 , y + height / 2 , module, ha='center', va='center')
+            else:
+                ax.add_patch(rect)
+                ax.text(x +  self.w_C / 2 , y + self.l_C / 2 , "Control", ha='center', va='center', fontsize=10)
 
 
     def calculate_position(self, moduleA_pos, portA, portB):
