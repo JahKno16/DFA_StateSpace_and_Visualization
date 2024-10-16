@@ -57,4 +57,14 @@ class TimePlot:
     
        
     def finalPlot(self):
+        for module_idx in range(self.numModules):
+            for port_idx in range(self.numPorts):
+                line_idx = module_idx * self.numPorts + port_idx
+                self.lines[line_idx].set_xdata(self.timeData)
+                self.lines[line_idx].set_ydata(self.portData[module_idx][port_idx])
         
+        self.ax.relim() 
+        self.ax.autoscale_view() 
+        self.ax.legend(self.legendTitles, loc="upper right")
+
+        plt.draw()
