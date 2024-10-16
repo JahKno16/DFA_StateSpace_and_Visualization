@@ -1,5 +1,6 @@
 from visualizer import ModularVisualizer
-from read_matrix import read_matrix_from_serial
+from readMatrix import read_matrix_from_serial
+from modelChecker import run_model_checker
 import time
 import csv
 
@@ -40,7 +41,7 @@ class stateGenerator:
                             state_item = (f'M{next_module}_{fPort}', f'M0_P0_{orientation}')
                             state_items[i].append(state_item)
 
-                    if i < len(modules) - 1 and i != 0 :
+                    if i < len(modules) - 1 and i != 0:
                         for j in range(i):
                             for connections in product(self.malePorts, self.femalePorts, self.orientations):
                                 mPort, fPort, orientation = connections
@@ -55,32 +56,52 @@ class stateGenerator:
                                 state_item = (f'M{next_module}_{fPort}', f'M{modules[i-k]}_{mPort}_{orientation}')    
                                 state_items[i].append(state_item) 
 
-                    for state_combination in product(*state_items):
-                        connection_tracker = {}
-                        valid_state = True
+                for state_combination in product(*state_items):
+                    connection_tracker = {}
+                    valid_state = True
 
-                        # Checks for duplicates on same connector
-                        for item in state_combination:
-                            for connection in item:
-                                module_port = connection.split('_')
-                                connection_key = (module_port[0], module_port[1])
-                            
-                                if connection_key in connection_tracker:
-                                    valid_state = False  # Duplicate found
-                                    break
-                                connection_tracker[connection_key] = True 
+                    # Checks for duplicates on same connector
+                    for item in state_combination:
+                        for connection in item:
+                            module_port = connection.split('_')
+                            connection_key = (module_port[0], module_port[1])
                         
-                               
+                            if connection_key in connection_tracker:
+                                valid_state = False  # Duplicate found
+                                break
+                            connection_tracker[connection_key] = True 
+                    
 
-                        # Only add the state if it's valid (no duplicates)
-                        if valid_state:
-                            state = frozenset(state_combination)
-                            if state not in self.states:
-                                self.add_state(state)
-
+                    # Only add the state if it's valid (no duplicates)
+                    if valid_state:
                         state = frozenset(state_combination)
-                        self.add_state(state)
-                   
+                        if state not in self.states:
+                            self.add_state(state)
+
+                    state = frozenset(state_combination)
+                    self.add_state(state)
+
+
+                # Linear spatial states (ring formation)
+                state_items = [[] for _ in range(len(modules))]
+                for i, module in enumerate(modules):
+                    if i == 0:
+                        for fPort in ["P2", "P3"]:
+                            state_item = (f'M{modules[i+1]}_{fPort}', f'M0_P0_O1')
+                            state_items[i].append(state_item)
+                            
+                    if i < len(modules) - 1 and i != 0:
+                        state_item = (f'M{modules[i+1]}_P1', f'M{modules[i]}_P4_O1')  
+                        state_items[i].append(state_item)
+
+                    # Attaches last module to port of the first to create a ring formation
+                    if i == len(modules) - 1 and i > 1:
+                        state_item = (f'M{modules[1]}_P1', f'M{modules[i]}_P4_O1') 
+                        state_items[i].append(state_item)
+
+                for state_combination in product(*state_items):
+                    state = frozenset(state_combination)
+                    self.add_state(state)
 
         # Generate transitions for each state
         for state in list(self.states):
@@ -190,10 +211,35 @@ class stateGenerator:
                         self.occupied.pop(occupied_key)
 
         print(actions)
+
+        ## Ensures that control module is first action
+        for action in actions:
+            if "M0" in action:
+                self.perform_action(action)
+            time.sleep(.5)
+
         for action in actions:
             self.perform_action(action)
-            time.sleep(.5)
+            time.sleep(.5)   
     
+    def matrix_to_state(self, matrix):
+        read_state = {}
+        for module_idx, row in enumerate(matrix):
+            for port_idx, val in enumerate(row):
+
+                # 1 indicates the presence of the control module
+                if val == 1:
+                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M0_P0_O1'
+
+                elif val != 0:
+                    # Decodes actuator number and port number
+                    binary_val = format(val, '08b')
+                    port_num = int(binary_val[-3:], 2)
+                    module_num = int(binary_val[:5], 2)
+
+                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M{module_num}_P{port_num}_O1'
+
+        return frozenset(read_state.items())
     
     def export_transitions(self, filename='transitions.csv'):
         # Prepare data 
@@ -212,16 +258,26 @@ class stateGenerator:
 
 
 if __name__ == "__main__":
-    num_modules = 3
+    num_modules = 2
     stateGen = stateGenerator(num_modules)
-    #stateGen.export_transitions()
+    #modelCheck = ModelChecker(stateGen.current_state, stateGen.transitions)
+    stateGen.export_transitions()
+
     
     while True:
-        matrix_example = [[1, 28, 20],
-                         [0,  0, 0],  # Actuator 2 
-                          [0,  0, 0]    
+        initial_matrix = [[20, 0, 1],
+                 [0,  0, 0],  # Actuator 2 
+                  [0,  0, 0]    
+        ]
+        matrix = [[20, 1, 0],
+                 [12,  0, 0],  # Actuator 2 
+                  [0,  0, 0]    
         ]
 
-        ##matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
-        stateGen.action_config_matrix(matrix_example)
+        desired_state = stateGen.matrix_to_state(matrix)
+        initial_state = stateGen.matrix_to_state(initial_matrix)
+
+        run_model_checker(stateGen.transitions, initial_state, desired_state)
+        #matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
+        stateGen.action_config_matrix(matrix)
         time.sleep(10)

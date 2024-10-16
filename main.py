@@ -1,5 +1,7 @@
 import csv
 from visualizer import ModularVisualizer
+from ContinuousTimePlot import TimePlot
+from readMatrix import read_matrix_from_serial
 import time
 
 class DFA:
@@ -36,8 +38,8 @@ class DFA:
             print(f"Transitioning from {self.current_state} to {new_state} on action '{action}'")
             self.current_state = new_state
         
-            visualizer = ModularVisualizer()
-            visualizer.visualize_configuration(self.current_state)
+            #visualizer = ModularVisualizer()
+            #visualizer.visualize_configuration(self.current_state)
         else:
             print(f"No valid transition from state '{self.current_state}' on action '{action}'")
 
@@ -81,13 +83,18 @@ class DFA:
 if __name__ == "__main__":
     dfa = DFA()
     dfa.import_transitions()
+    plot = TimePlot()
 
     while True:
-        matrix_example = [[1, 0, 0],
-                    [0, 12, 0],
-                    [0, 0, 28]
+        matrix = [[20, 1, 0],
+                 [0,  0, 0],   # Actuator 2 
+                  [0,  0, 0]    
         ]
-        ##matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
-        dfa.action_config_matrix(matrix_example)
-        time.sleep(10)
+        matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
+        dfa.action_config_matrix(matrix)
+        plot.plotData(matrix)
+        time.sleep(1)
+        plot.export_data()
+
+        
        

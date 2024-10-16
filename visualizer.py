@@ -22,6 +22,7 @@ class ModularVisualizer:
         fig, ax = plt.subplots()
         plt.axis('off')
         
+        #Draws control module for initial state (control is always present)
         if state == frozenset():
             module_pos = {"M0": (-self.w_C/2, -2, 0)}  
             self.draw_module(ax, module_pos["M0"], 'M0', 'P0')
@@ -44,6 +45,7 @@ class ModularVisualizer:
                 moduleB_pos, orientationB, portB = self.calculate_position(moduleA_pos, portA, portB)
                 module_pos[moduleB] = (*moduleB_pos, orientationB)
                 self.draw_module(ax, module_pos[moduleB], moduleB, portB)
+
             elif moduleB in module_pos:
                 # If module B is defined, calculate position for module A
                 moduleB_pos = module_pos[moduleB]
@@ -75,17 +77,17 @@ class ModularVisualizer:
         x, y, orientation = pos
         width, height = self.w, self.l
         port_dx, port_dy = port
-
+      
         # Create rectangle patch
         if module == "M0":
             rect = patches.Rectangle((x, y), self.w_C, self.l_C, edgecolor='black', facecolor='yellow')
         else:
-            rect = patches.Rectangle((x, y), width, height, edgecolor='blue', facecolor='lightblue')
+            rect = patches.Rectangle((x, y), width, height, edgecolor='black', facecolor='lightblue')
 
         # Apply rotation transformation
         
         if orientation == 1:
-            t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, 90) + ax.transData
+            t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, self.flip) + ax.transData
             rect.set_transform(t)
 
             rect.set_xy((x, y))
@@ -93,13 +95,13 @@ class ModularVisualizer:
             ax.add_patch(rect)
             #for port, (dx, dy) in self.portPos.items():
                 #ax.text(x - dy + , y + dx + port_dx, port, ha='center', va='center', fontsize=8)
-            ax.text(x - width/2, y + 3*width/4, module, ha='center', va='center')
+            ax.text(x + self.x_label_offset, y + self.y_label_offset, module, ha='center', va='center')
         
         else:
             if module != "M0":
                 ax.add_patch(rect)
-                for port, (dx, dy) in self.portPos.items():
-                    ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=8, color='black')
+                #for port, (dx, dy) in self.portPos.items():
+                    #ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=8, color='black')
                 ax.text(x +  width / 2 , y + height / 2 , module, ha='center', va='center')
             else:
                 ax.add_patch(rect)
@@ -116,12 +118,31 @@ class ModularVisualizer:
 
         # Calculate the position of module B
         moduleB_pos = np.array([xA, yA]) + (portAPos - portBPos)
+    
 
         # Determine if module B should be rotated
         orientationB = orientationA
-        if (portA == 'P1' and portB in ['P5', 'P6']) or (portB == 'P4' and portA in ['P2', 'P3']) or (portA == 'P4' and portB in ['P2', 'P3']):
-            orientationB = 1 - orientationA  # Flip module
 
+        if (portA == 'P1' and portB in ['P5', 'P6']): 
+            self.x_label_offset, self.y_label_offset =  3/2*self.w, self.w
+            self.flip = 90
+            orientationB = 1 - orientationA  # Flip module
+        
+        if (portA == 'P4' and portB in ['P2', 'P3']) or (portA == 'P0' and portB in ['P2', 'P3']):
+            self.flip = 90
+            self.x_label_offset, self.y_label_offset =  -self.w/2, self.w
+            orientationB = 1 - orientationA  # Flip module
+                
+        if (portB == 'P4' and portA in ['P2', 'P3']):
+            self.flip = -90
+            self.x_label_offset, self.y_label_offset =  -self.w/2, self.l
+            orientationB = 1 - orientationA  # Flip module
+        
+        if(portB == 'P1' and portA in ['P5', 'P6']):
+            self.flip = -90
+            self.x_label_offset, self.y_label_offset =  3/2*self.w, 0
+            orientationB = 1 - orientationA  # Flip module
+        
         return moduleB_pos, orientationB, portBPos
 
 if __name__ == "__main__":
@@ -130,6 +151,3 @@ if __name__ == "__main__":
     state = [('M1_P1', 'M2_P4_O1') , ('M2_P1', 'M3_P5_O1')]
     visualizer.visualize_configuration(state)
     time.sleep(20)
-
-    #M1_P1_M2_P4
-# M3_P2_M1_P4
