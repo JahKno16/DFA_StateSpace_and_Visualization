@@ -86,15 +86,15 @@ if __name__ == "__main__":
     plot = TimePlot()
 
     while True:
-        matrix = [[20, 1, 0],
-                 [0,  0, 0],   # Actuator 2 
+        matrix = [[20, 0, 0],
+                 [0,  1, 0],   # Actuator 2 
                   [0,  0, 0]    
         ]
         matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
         dfa.action_config_matrix(matrix)
         plot.plotData(matrix)
         time.sleep(1)
-        plot.export_data()
+        #plot.export_data()
 
         
        

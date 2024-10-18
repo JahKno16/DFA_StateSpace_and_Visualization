@@ -1,11 +1,11 @@
 #include <Wire.h>
 
 // Actuator ID
-#define ACTUATOR_ID 2
+#define ACTUATOR_ID 1
 
 // Connector Pin Assignment
-const int INPUT_PORTS[3] = {1, 2, 2};
-const int OUTPUT_PORTS[3] = {8, 10, 10};
+const int INPUT_PORTS[3] = {1, 0, 0};
+const int OUTPUT_PORTS[3] = {8, 10, 0};
 
 // Solenoid Pins
 const int AIR_IN_PIN = 6;
@@ -20,17 +20,19 @@ const int unlockPin = 9;
 volatile bool dataReceived = false;
 volatile int receivedData = 0;
 
+int incomingMatrix[3];
+
 int inputData[3] = {0, 0, 0};
 bool pairMode[3] = {false, false, false};
 bool handShake[3] = {false, false, false};
 
 bool connected[6] = {false, false, false, false, false, false};
-bool temp_connect = false;
 
 void setup() {
   Serial.begin(9600);
   Wire.begin(ACTUATOR_ID);
   Wire.onRequest(requestEvent);
+  Wire.onReceive(receiveEvent);
 
   // Solenoid pin 
   pinMode(AIR_IN_PIN, OUTPUT);
@@ -47,22 +49,26 @@ void setup() {
 
 void loop() {
   // Send data to each output port
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 2; i++) {
     readPorts(INPUT_PORTS[i], i);
-    writePorts(OUTPUT_PORTS[i], i + 4, i); 
+    writePorts(OUTPUT_PORTS[i], i + 4, i);
+    Serial.println(inputData[i]); 
+    delay(50);
   }
-  delay(100);
+  conditionCode(); 
 
+  delay(100);
 }
 
 
 void writePorts(int port, int portNum, int idx) {
-  
   if(connected[portNum-1]){
     pinMode(port, OUTPUT);
     digitalWrite(port, HIGH);
+    Serial.print("Port 4 connected");
   }
 
+  else{
   //Seaching for device on port
   pinMode(port, INPUT_PULLDOWN);
   attachInterrupt(digitalPinToInterrupt(port), pairingMode, CHANGE);
@@ -106,14 +112,16 @@ void writePorts(int port, int portNum, int idx) {
     digitalWrite(port, LOW);
     pairMode[idx] = false;
    }
+  }
 }
 
 void readPorts(int port, int idx) {
-
     if(digitalRead(port) == HIGH){
       connected[idx] = true;
+      detachInterrupt(digitalPinToInterrupt(port));
       return;
-    } else{
+
+    } else {
       connected[idx] = false;
     }
 
@@ -127,39 +135,28 @@ void readPorts(int port, int idx) {
       attachInterrupt(digitalPinToInterrupt(port), handshake, CHANGE);
       delay(200);
 
-      if(handShake[idx]){
+      if(handShake[idx] && receivedData == 0){
           detachInterrupt(digitalPinToInterrupt(port));
           receivedData = 0;
           for (int j = 0; j < 8; j++) { 
             if (digitalRead(port) == HIGH) {
               receivedData |= (1 << j);
             }
-          delay(150);
-
-        if(temp_connect == false){
-           for(int i = 0; i < 15; i++) {
-              analogWrite(unlockPin, 50);
-              delay(75);
-              analogWrite(unlockPin, 0);
-              digitalWrite(lockPin, HIGH);
-              delay(150);
-              digitalWrite(lockPin, LOW);
+            delay(150);
+          }
+          connect();
+          inputData[idx] = receivedData;
+      } else {
+            /*int startTime = millis();
+            while(digitalRead(port) == LOW){
+              if(millis() - startTime > 1000){
+                inputData[idx] = 0;
             }
-            delay(1500);
-            //digitalWrite(lockPin, HIGH);
-            //temp_connect = true;
-        }
-      } 
-
-        handShake[idx] = false;
-        decodeData(receivedData);
-        inputData[idx] = receivedData;
+         */ 
       }
-      /*
-    else{
-      inputData[idx] = 0;
-    }
-    */
+      handShake[idx] = false;
+        //decodeData(receivedData);
+    
     }
 }
 
@@ -167,8 +164,8 @@ void pairingMode() {
   for(int i = 0; i < 3; i++){
     if(digitalRead(OUTPUT_PORTS[i]) == HIGH){
       pairMode[i] = true;
-      Serial.print("Pairing mode started on port: ");
-      Serial.println(4+i);
+      //Serial.print("Pairing mode started on port: ");
+      //Serial.println(4+i);
     }
   }
 }
@@ -195,6 +192,28 @@ void decodeData(int data){
 }
 
 
+void connect(){
+      for(int i = 0; i < 10; i++) {
+        analogWrite(unlockPin, 50);
+        delay(75);
+        analogWrite(unlockPin, 0);
+        digitalWrite(lockPin, HIGH);
+        delay(150);
+        digitalWrite(lockPin, LOW);
+      }
+}
+
+void disconnect(){
+      for(int i = 0; i < 10; i++) {
+        analogWrite(lockPin, 50);
+        delay(75);
+        analogWrite(lockPin, 0);
+        digitalWrite(unlockPin, HIGH);
+        delay(150);
+        digitalWrite(unlockPin, LOW);
+      }
+}
+
 void requestEvent() {
   Wire.write(ACTUATOR_ID); // Send the actuator ID first
   for (int i = 0; i < 3; i++) {
@@ -203,4 +222,22 @@ void requestEvent() {
   }
 }
 
+void receiveEvent(int numByte){
+  int i = 3;
+  while (Wire.available()) {
+    int readData = Wire.read();
+    if (readData == 1) {
+      connected[i] = true;
+    } else {
+      connected[i] = false;
+    }
+    i++;
+  }
+}
 
+void conditionCode(){
+  // Module 3, disconnect
+  if(connected[3] == true && ACTUATOR_ID == 3){
+    disconnect();
+  }
+}

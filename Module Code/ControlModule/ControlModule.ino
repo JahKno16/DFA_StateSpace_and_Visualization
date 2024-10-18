@@ -4,9 +4,9 @@
 #define NUM_INPUT_PORTS 3 
 #define MAX_ACTUATORS 5
 
-const int port = 6;
-bool pairMode = false;
-
+const int port = 6;   //Digital ID Pin
+bool pairMode = false;  
+bool controlPresent = false;
 bool present = false;
 
 int configurationMatrix[MAX_ACTUATORS][NUM_INPUT_PORTS]; 
@@ -19,6 +19,7 @@ void setup() {
 void loop() {
   //Assume no actuators are present
   present = false;
+  writePorts(port, 1);
 
   //Request configuration data from Actuators by ID
   for (int actuatorID = 1; actuatorID <= MAX_ACTUATORS; actuatorID++) {
@@ -31,14 +32,15 @@ void loop() {
     zeroMatrix(); 
   }
 
+  updateConfigArrays();
   send_matrix();
 
   // Print the configuration matrix
   //printConfigurationMatrix();
-
-  writePorts(port, 1);
   delay(500); 
 }
+
+
 
 void requestData(int actuatorID) {
   Wire.requestFrom(actuatorID, 1+NUM_INPUT_PORTS); 
@@ -61,19 +63,13 @@ void requestData(int actuatorID) {
       present = true;
     }
   }
-   
-
-    /*
-    // Print received data
-    Serial.print("Received data from actuator ");
-    Serial.print(receivedActuatorID);
-    Serial.print(": ");
-    for (int i = 0; i < NUM_INPUT_PORTS; i++) {
-      Serial.print(configurationMatrix[receivedActuatorID - 1][i]);
-      Serial.print(" ");
-    }
-    Serial.println();
-    */
+  
+  // If module does not respond, set all ports to 0
+  else {
+     for (int i = 0; i < NUM_INPUT_PORTS; i++) {
+        configurationMatrix[actuatorID - 1][i] = 0; 
+      }
+  }
 }
 
 void printConfigurationMatrix() {
@@ -105,7 +101,52 @@ void send_matrix(){
   delay(100);  
 }
 
+
+void updateConfigArrays(){
+   int configMatrix[MAX_ACTUATORS][3] = {0};
+   controlPresent = false;
+
+   for (int i = 0; i < MAX_ACTUATORS; i++) {
+    for (int j = 0; j < NUM_INPUT_PORTS; j++) {
+      int value = configurationMatrix[i][j];
+      int portID = value & 0x07; // Lower 3 bits are connector number
+      int actuatorID = (value >> 3) & 0x1F;
+
+      if (value != 0 && value != 1){
+        configMatrix[actuatorID-1][portID - 4] = 1;
+      }
+      else {
+        configMatrix[actuatorID-1][portID - 4] = 0;
+      }
+
+      if (value == 1){
+        controlPresent = true;
+      } 
+    }
+   }
+       
+    for (int ID = 1; ID <= MAX_ACTUATORS; ID++){
+        Wire.beginTransmission(ID);
+        for(int port_idx = 0; port_idx < 3; port_idx++){
+          int connectedState = configMatrix[ID - 1][port_idx];
+          Wire.write(connectedState);
+          Serial.print(connectedState);
+        }
+        Wire.endTransmission(); 
+        Serial.print("Updating Matrix");
+    }
+  
+}
+
+
 void writePorts(int port, int id) {
+  if (controlPresent == true){
+    pinMode(port, OUTPUT);
+    digitalWrite(port, HIGH);
+    Serial.print("We are High");
+
+  } else {
+  Serial.print("We are NOT high");
   //Seaching for device on port
   pinMode(port, INPUT_PULLDOWN);
   attachInterrupt(digitalPinToInterrupt(port), pairingMode, CHANGE);
@@ -124,7 +165,7 @@ void writePorts(int port, int id) {
     int startTime = millis();
 
     while(digitalRead(port) == LOW){
-      if(millis() - startTime > 5000){
+      if(millis() - startTime > 2000){
         pairMode = false;
         return;
       }
@@ -138,23 +179,5 @@ void writePorts(int port, int id) {
     digitalWrite(port, (id & (1 << i)) ? HIGH : LOW);
     delay(150); 
   }
-
     digitalWrite(port, LOW);
-    pairMode = false;
-   }
-}
-
-void pairingMode() {
-    if(digitalRead(port) == HIGH){
-      pairMode = true;
-  }
-}
-
-void zeroMatrix() {
-   // Set all values to zero using nested loops
-  for (int i = 0; i < MAX_ACTUATORS; i++) {
-    for (int j = 0; j < NUM_INPUT_PORTS; j++) {
-      configurationMatrix[i][j] = 0;
-    }
-  }
-}
+    pairMod

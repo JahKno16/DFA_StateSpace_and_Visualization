@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import time
 import csv
 
@@ -12,9 +13,10 @@ class TimePlot:
         self.timeData = [] 
         
         self.fig, self.ax = plt.subplots()
-        self.legendTitles = ["M1P1", "M1P2", "M1P3", "M2P1", "M2P1", "M2P2", "M2P3", "M3P1", "M3P2", "M3P3"]
+        self.legendTitles = np.array(["M1P1", "M1P2", "M1P3", "M2P1", "M2P2", "M2P3", "M3P1", "M3P2", "M3P3"])
+        self.portsToDisplay = [0, 3, 4, 6]
 
-        self.lines = [self.ax.plot([], [])[0] for _ in range(self.numModules * self.numPorts)]
+        self.lines = np.array([self.ax.plot([], [])[0] for _ in range(self.numModules * self.numPorts)])
 
         plt.ion() 
 
@@ -25,14 +27,14 @@ class TimePlot:
         for module_idx, row in enumerate(matrix):
             for port_idx, val in enumerate(row):
                 self.portData[module_idx][port_idx].append(val)
-                
                 line_idx = module_idx * self.numPorts + port_idx
+                #if line_idx in self.portsToDisplay:
                 self.lines[line_idx].set_xdata(self.timeData)
                 self.lines[line_idx].set_ydata(self.portData[module_idx][port_idx])
 
         self.ax.relim() 
         self.ax.autoscale_view() 
-        self.ax.legend(self.legendTitles, loc="upper right")
+        self.ax.legend(self.lines[self.portsToDisplay], self.legendTitles[self.portsToDisplay], loc="upper right")
 
         plt.draw()
         plt.pause(0.01)  # Pause for the plot to update (adjust as needed)
@@ -61,10 +63,4 @@ class TimePlot:
             for port_idx in range(self.numPorts):
                 line_idx = module_idx * self.numPorts + port_idx
                 self.lines[line_idx].set_xdata(self.timeData)
-                self.lines[line_idx].set_ydata(self.portData[module_idx][port_idx])
-        
-        self.ax.relim() 
-        self.ax.autoscale_view() 
-        self.ax.legend(self.legendTitles, loc="upper right")
-
-        plt.draw()
+                self.lines[line_idx].set_ydata(self.portData
