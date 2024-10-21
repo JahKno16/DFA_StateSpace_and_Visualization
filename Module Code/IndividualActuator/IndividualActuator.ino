@@ -1,11 +1,11 @@
 #include <Wire.h>
 
 // Actuator ID
-#define ACTUATOR_ID 1
+#define ACTUATOR_ID 3
 
 // Connector Pin Assignment
-const int INPUT_PORTS[3] = {1, 0, 0};
-const int OUTPUT_PORTS[3] = {8, 10, 0};
+const int INPUT_PORTS[3] = {1, 2, 0};
+const int OUTPUT_PORTS[3] = {8, 10, 10};
 
 // Solenoid Pins
 const int AIR_IN_PIN = 6;
@@ -22,7 +22,7 @@ volatile int receivedData = 0;
 
 int incomingMatrix[3];
 
-int inputData[3] = {0, 0, 0};
+int inputData[3] = {0, 1, 0};
 bool pairMode[3] = {false, false, false};
 bool handShake[3] = {false, false, false};
 
@@ -36,7 +36,7 @@ void setup() {
 
   // Solenoid pin 
   pinMode(AIR_IN_PIN, OUTPUT);
-  //digitalWrite(AIR_IN_PIN, HIGH);
+  digitalWrite(AIR_IN_PIN, HIGH);
 
   pinMode(lockPin, OUTPUT);
   pinMode(unlockPin, OUTPUT);
@@ -49,7 +49,7 @@ void setup() {
 
 void loop() {
   // Send data to each output port
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 1; i++) {
     readPorts(INPUT_PORTS[i], i);
     writePorts(OUTPUT_PORTS[i], i + 4, i);
     Serial.println(inputData[i]); 
@@ -57,7 +57,7 @@ void loop() {
   }
   conditionCode(); 
 
-  delay(100);
+  delay(50);
 }
 
 
@@ -86,10 +86,11 @@ void writePorts(int port, int portNum, int idx) {
 
     int startTime = millis();
     Serial.print("In pairing mode on port ");
-    Serial.println(port);
+    Serial.println(idx + 4);
 
+    Serial.println("Entering Paring Mode");
     while(digitalRead(port) == LOW){
-      if(millis() - startTime > 1500){
+      if(millis() - startTime > 5000){
         pairMode[idx] = false;
         return;
       }
@@ -136,6 +137,7 @@ void readPorts(int port, int idx) {
       delay(200);
 
       if(handShake[idx] && receivedData == 0){
+          Serial.println("Receiving...");
           detachInterrupt(digitalPinToInterrupt(port));
           receivedData = 0;
           for (int j = 0; j < 8; j++) { 
@@ -146,14 +148,14 @@ void readPorts(int port, int idx) {
           }
           connect();
           inputData[idx] = receivedData;
-      } else {
-            /*int startTime = millis();
+      } /*else {
+            int startTime = millis();
             while(digitalRead(port) == LOW){
-              if(millis() - startTime > 1000){
+              if(millis() - startTime > 5000){
                 inputData[idx] = 0;
             }
-         */ 
-      }
+          }
+      }*/
       handShake[idx] = false;
         //decodeData(receivedData);
     
@@ -173,7 +175,7 @@ void pairingMode() {
 //Run when receiver detects handshake signal
 void handshake() {
   for(int i = 0; i < 3; i++){
-    if(digitalRead(INPUT_PORTS[i]) == HIGH){
+    if(digitalRead(INPUT_PORTS[i]) == HIGH && connected[i] == false){
       handShake[i] = true;
       Serial.print("Handshake read on port ");
       Serial.println(i+1);
@@ -193,7 +195,7 @@ void decodeData(int data){
 
 
 void connect(){
-      for(int i = 0; i < 10; i++) {
+      for(int i = 0; i < 15; i++) {
         analogWrite(unlockPin, 50);
         delay(75);
         analogWrite(unlockPin, 0);
@@ -235,9 +237,10 @@ void receiveEvent(int numByte){
   }
 }
 
+
 void conditionCode(){
   // Module 3, disconnect
-  if(connected[3] == true && ACTUATOR_ID == 3){
+  if(connected[3] == true && connected[0] == true && ACTUATOR_ID == 3){
     disconnect();
   }
 }

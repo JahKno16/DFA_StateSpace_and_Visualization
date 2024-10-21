@@ -37,7 +37,7 @@ void loop() {
 
   // Print the configuration matrix
   //printConfigurationMatrix();
-  delay(500); 
+  delay(200);
 }
 
 
@@ -158,14 +158,15 @@ void writePorts(int port, int id) {
     //Send handshake data 
     pinMode(port, OUTPUT);
     digitalWrite(port, HIGH);
-    delay(10);
+    delay(100);  //Was 10
     digitalWrite(port, LOW);
     pinMode(port, INPUT_PULLDOWN);
 
     int startTime = millis();
 
+    Serial.println("Entering Paring Mode");
     while(digitalRead(port) == LOW){
-      if(millis() - startTime > 2000){
+      if(millis() - startTime > 1000){
         pairMode = false;
         return;
       }
@@ -173,11 +174,29 @@ void writePorts(int port, int id) {
 
   pinMode(port, OUTPUT);
   delay(200);
-
+  Serial.print("Sending Data");
   //Send data bitwise
   for (int i = 0; i < 8; i++) {
     digitalWrite(port, (id & (1 << i)) ? HIGH : LOW);
     delay(150); 
   }
     digitalWrite(port, LOW);
-    pairMod
+    pairMode = false;
+  }
+  }
+}
+
+void pairingMode() {
+    if(digitalRead(port) == HIGH){
+      pairMode = true;
+  }
+}
+
+void zeroMatrix() {
+   // Set all values to zero using nested loops
+  for (int i = 0; i < MAX_ACTUATORS; i++) {
+    for (int j = 0; j < NUM_INPUT_PORTS; j++) {
+      configurationMatrix[i][j] = 0;
+    }
+  }
+}
