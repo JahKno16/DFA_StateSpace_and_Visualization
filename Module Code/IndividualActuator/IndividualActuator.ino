@@ -5,7 +5,7 @@
 
 // Connector Pin Assignment
 const int INPUT_PORTS[3] = {1, 2, 0};
-const int OUTPUT_PORTS[3] = {8, 10, 10};
+const int OUTPUT_PORTS[3] = {8, 8, 10};
 
 // Solenoid Pins
 const int AIR_IN_PIN = 6;
@@ -22,7 +22,7 @@ volatile int receivedData = 0;
 
 int incomingMatrix[3];
 
-int inputData[3] = {0, 1, 0};
+int inputData[3] = {0, 0, 0};
 bool pairMode[3] = {false, false, false};
 bool handShake[3] = {false, false, false};
 
@@ -147,6 +147,9 @@ void readPorts(int port, int idx) {
             delay(150);
           }
           connect();
+          if (int(receivedData) == 5){
+            receivedData == 20;
+          }
           inputData[idx] = receivedData;
       } /*else {
             int startTime = millis();
@@ -206,12 +209,12 @@ void connect(){
 }
 
 void disconnect(){
-      for(int i = 0; i < 10; i++) {
-        analogWrite(lockPin, 50);
-        delay(75);
+      for(int i = 0; i < 15; i++) {
+        analogWrite(lockPin, 100);
+        delay(100);
         analogWrite(lockPin, 0);
         digitalWrite(unlockPin, HIGH);
-        delay(150);
+        delay(200);
         digitalWrite(unlockPin, LOW);
       }
 }
@@ -239,8 +242,9 @@ void receiveEvent(int numByte){
 
 
 void conditionCode(){
-  // Module 3, disconnect
-  if(connected[3] == true && connected[0] == true && ACTUATOR_ID == 3){
+  // Module 1, disconnect
+  if(connected[0] == true && connected[3] == true && ACTUATOR_ID == 3){
+    Serial.println("Disconnecting");
     disconnect();
   }
 }

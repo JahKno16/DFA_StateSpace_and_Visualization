@@ -10,6 +10,7 @@ bool controlPresent = false;
 bool present = false;
 
 int configurationMatrix[MAX_ACTUATORS][NUM_INPUT_PORTS]; 
+int commandMatrix[MAX_ACTUATORS][NUM_INPUT_PORTS];
 
 void setup() {
   Serial.begin(9600);
@@ -35,7 +36,8 @@ void loop() {
   updateConfigArrays();
   send_matrix();
 
-  // Print the configuration matrix
+  receiveCommands();
+  printCommandMatrix();
   //printConfigurationMatrix();
   delay(200);
 }
@@ -118,7 +120,10 @@ void updateConfigArrays(){
       else {
         configMatrix[actuatorID-1][portID - 4] = 0;
       }
-
+      // Special Control Code for multiconfig test
+      if (value == 20){   //If Module 1 is connected
+        configMatrix[2][0] = 1;
+      }
       if (value == 1){
         controlPresent = true;
       } 
@@ -127,13 +132,14 @@ void updateConfigArrays(){
        
     for (int ID = 1; ID <= MAX_ACTUATORS; ID++){
         Wire.beginTransmission(ID);
+        Wire.write('u'); // 'u' indicated configuration Update matrix 
         for(int port_idx = 0; port_idx < 3; port_idx++){
           int connectedState = configMatrix[ID - 1][port_idx];
           Wire.write(connectedState);
-          Serial.print(connectedState);
+          //Serial.print(connectedState);
         }
         Wire.endTransmission(); 
-        Serial.print("Updating Matrix");
+        //Serial.print("Updating Matrix");
     }
   
 }
@@ -143,7 +149,7 @@ void writePorts(int port, int id) {
   if (controlPresent == true){
     pinMode(port, OUTPUT);
     digitalWrite(port, HIGH);
-    Serial.print("We are High");
+    //Serial.print("We are High");
 
   } else {
   Serial.print("We are NOT high");
@@ -174,7 +180,7 @@ void writePorts(int port, int id) {
 
   pinMode(port, OUTPUT);
   delay(200);
-  Serial.print("Sending Data");
+  //Serial.print("Sending Data");
   //Send data bitwise
   for (int i = 0; i < 8; i++) {
     digitalWrite(port, (id & (1 << i)) ? HIGH : LOW);
@@ -198,5 +204,69 @@ void zeroMatrix() {
     for (int j = 0; j < NUM_INPUT_PORTS; j++) {
       configurationMatrix[i][j] = 0;
     }
+  }
+}
+
+void receiveCommands(){
+  if(Serial.available()) {
+    int module_count = 0;
+    while (Serial.available()) {
+      // Read a line from the serial input until newline character
+      String receivedData = Serial.readStringUntil('\n');
+      
+      // Print the received data for debugging
+      Serial.print("Received: ");
+      Serial.println(receivedData);
+      
+       if (receivedData == "END") {
+        // Stop reading and process the matrix if "END" is received
+        Serial.println("Received END signal. Full matrix received");
+
+       } else {
+          int values[3]; 
+          int port_idx = 0;
+          char* token = strtok((char*)receivedData.c_str(), ",");
+          while (token != NULL && port_idx < 3) {  
+            commandMatrix[module_count][port_idx] = atoi(token); 
+            token = strtok(NULL, ",");
+            port_idx++;
+          }
+
+          module_count++;
+
+          // Print the parsed values for verification
+          Serial.print("Parsed values: ");
+          for (int i = 0; i < 3; i++) {  // Adjust this loop for the column count
+            Serial.print(values[i]);
+            Serial.print(" ");
+          }
+          Serial.println();
+}
+    }
+  }
+}
+
+void printCommandMatrix() {
+  // Print the received matrix
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 3; j++) {
+      Serial.print(commandMatrix[i][j]);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+}
+
+void sendActuatorCommands(){
+  for (int ID = 1; ID <= MAX_ACTUATORS; ID++){
+        Wire.beginTransmission(ID);
+        Wire.write("c");    //'C' Indicates the incoming data is command instruction
+        for(int port_idx = 0; port_idx < 3; port_idx++){
+          int command = commandMatrix[ID - 1][port_idx];
+          Wire.write(command);
+          //Serial.print(connectedState);
+        }
+        Wire.endTransmission(); 
+        //Serial.print("Updating Matrix");
   }
 }

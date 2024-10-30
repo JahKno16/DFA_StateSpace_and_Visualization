@@ -258,10 +258,10 @@ class stateGenerator:
 
 
 if __name__ == "__main__":
-    num_modules = 2
+    num_modules = 3
     stateGen = stateGenerator(num_modules)
     #modelCheck = ModelChecker(stateGen.current_state, stateGen.transitions)
-    stateGen.export_transitions()
+    #stateGen.export_transitions()
 
     
     while True:
@@ -269,15 +269,15 @@ if __name__ == "__main__":
                  [0,  0, 0],  # Actuator 2 
                   [0,  0, 0]    
         ]
-        matrix = [[20, 1, 0],
-                 [12,  0, 0],  # Actuator 2 
-                  [0,  0, 0]    
+        matrix = [[1, 0, 0],
+                 [0,  0, 0],  # Actuator 2 
+                  [12,  0, 0]    
         ]
 
         desired_state = stateGen.matrix_to_state(matrix)
         initial_state = stateGen.matrix_to_state(initial_matrix)
 
-        run_model_checker(stateGen.transitions, initial_state, desired_state)
+        #run_model_checker(stateGen.transitions, initial_state, desired_state)
         #matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
         stateGen.action_config_matrix(matrix)
         time.sleep(10)

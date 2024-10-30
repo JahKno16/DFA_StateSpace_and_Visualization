@@ -1,6 +1,6 @@
 import serial
 
-def read_matrix_from_serial(port='/dev/cu.usbmodem144201', baudrate=9600, rows=5, cols=4):
+def read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600, rows=5, cols=4):
     ser = serial.Serial(port, baudrate)
     config_matrix = []
     while True:

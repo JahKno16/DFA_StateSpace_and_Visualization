@@ -14,7 +14,7 @@ class TimePlot:
         
         self.fig, self.ax = plt.subplots()
         self.legendTitles = np.array(["M1P1", "M1P2", "M1P3", "M2P1", "M2P2", "M2P3", "M3P1", "M3P2", "M3P3"])
-        self.portsToDisplay = [0, 3, 4, 6]
+        self.portsToDisplay = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
         self.lines = np.array([self.ax.plot([], [])[0] for _ in range(self.numModules * self.numPorts)])
 
@@ -52,7 +52,7 @@ class TimePlot:
 
         with open(filename, mode='w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Time"] + self.legendTitles)  # header
+            writer.writerow(["Time"] + self.legendTitles.tolist())  # header
             writer.writerows(csv_data) 
 
         print(f"Transitions exported to {filename}")

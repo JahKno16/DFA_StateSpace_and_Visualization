@@ -87,6 +87,11 @@ class ModularVisualizer:
         # Apply rotation transformation
         
         if orientation == 1:
+
+            ##Temp
+            #rect = patches.Rectangle((x, y), width, height, edgecolor='black', facecolor='lightgray')
+            ####
+
             t = Affine2D().rotate_deg_around(x + port_dx, y + port_dy, self.flip) + ax.transData
             rect.set_transform(t)
 
@@ -95,17 +100,17 @@ class ModularVisualizer:
             ax.add_patch(rect)
             #for port, (dx, dy) in self.portPos.items():
                 #ax.text(x - dy + , y + dx + port_dx, port, ha='center', va='center', fontsize=8)
-            ax.text(x + self.x_label_offset, y + self.y_label_offset, module, ha='center', va='center')
+            ax.text(x + self.x_label_offset, y + self.y_label_offset, module, fontsize=20, ha='center', va='center')
         
         else:
             if module != "M0":
                 ax.add_patch(rect)
                 #for port, (dx, dy) in self.portPos.items():
                     #ax.text(x +  dx, y + dy, port, ha='center', va='center', fontsize=8, color='black')
-                ax.text(x +  width / 2 , y + height / 2 , module, ha='center', va='center')
+                ax.text(x +  width / 2 , y + height / 2, module, ha='center', va='center', fontsize=20)
             else:
                 ax.add_patch(rect)
-                ax.text(x +  self.w_C / 2 , y + self.l_C / 2 , "Control", ha='center', va='center', fontsize=10)
+                ax.text(x +  self.w_C / 2 , y + self.l_C / 2 - .04, "M0", ha='center', va='center', fontsize=20)
 
 
     def calculate_position(self, moduleA_pos, portA, portB):
@@ -148,6 +153,6 @@ class ModularVisualizer:
 if __name__ == "__main__":
     # Example usage:
     visualizer = ModularVisualizer()
-    state = [('M1_P1', 'M2_P4_O1') , ('M2_P1', 'M3_P5_O1')]
+    state = [('M1_P1', 'M0_P0_O1') , ('M3_P1', 'M1_P4_O1')]
     visualizer.visualize_configuration(state)
     time.sleep(20)
