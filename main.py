@@ -1,4 +1,6 @@
 import csv
+from send_commands import sendCommands
+from modelChecker import run_model_checker
 from visualizer import ModularVisualizer
 from ContinuousTimePlot import TimePlot
 from readMatrix import read_matrix_from_serial
@@ -43,6 +45,24 @@ class DFA:
         else:
             print(f"No valid transition from state '{self.current_state}' on action '{action}'")
 
+    def matrix_to_state(self, matrix):
+        read_state = {}
+        for module_idx, row in enumerate(matrix):
+            for port_idx, val in enumerate(row):
+
+                # 1 indicates the presence of the control module
+                if val == 1:
+                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M0_P0_O1'
+
+                elif val != 0:
+                    # Decodes actuator number and port number
+                    binary_val = format(val, '08b')
+                    port_num = int(binary_val[-3:], 2)
+                    module_num = int(binary_val[:5], 2)
+
+                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M{module_num}_P{port_num}_O1'
+
+        return frozenset(read_state.items())
 
     def action_config_matrix(self, matrix):
         actions = []
@@ -83,20 +103,47 @@ class DFA:
 if __name__ == "__main__":
     dfa = DFA()
     dfa.import_transitions()
+
     plot = TimePlot()
 
     serial_port = '/dev/cu.usbmodem14401'
+    command = sendCommands(modules=5, port=serial_port, baudrate=9600)
 
-    while True:
-        matrix = [[20, 0, 0],
-                 [0,  1, 0],   # Actuator 2 
-                  [0,  0, 0]    
+    initial_matrix = [[0, 1, 0],
+                    [0,  0, 0],  
+                    [12,  0, 0]    
         ]
-        #matrix = read_matrix_from_serial(port=serial_port, baudrate=9600)
-        dfa.action_config_matrix(matrix)
-        plot.plotData(matrix)
-        time.sleep(1)
-        plot.export_data()
+    
+    desired_matrix = [[20, 1, 0],
+                    [0,  0, 0],  
+                    [0,  0, 0]    
+        ]
+
+    desired_state = dfa.matrix_to_state(desired_matrix)
+    initial_state = dfa.matrix_to_state(initial_matrix)
+
+    verified, states, actions = run_model_checker(dfa.transitions, initial_state, desired_state)
+
+
+    for idx, action in enumerate(actions):      # Iterates over all actions defined by model checker
+        commandSent = False
+
+        while True:     # Waits for action to be completed
+            matrix = read_matrix_from_serial(port=serial_port, baudrate=9600)  ## Reads current Matrix
+            current_state = dfa.matrix_to_state(matrix)    #Converts matrix to a state
+
+            if commandSent == False:    # Only send command to control module once
+                time.sleep(.5)
+                command.write_actions_matrix(action)    # Sends "command matrix"
+                commandSent = True
+            
+            if current_state == states[idx]:   # Continue to next action once state has been reached
+                break
+               
+            plot.plotData(matrix)      ## Plots data read on ports from matrix over time
+            time.sleep(1)
+            
+    plot.export_data()         ## Once complete, export the readData vs time csv
 
         
        

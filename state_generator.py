@@ -143,7 +143,7 @@ class stateGenerator:
         return actions
     
 
-    #Applies possible actions to produce a new states
+    #Applies possible actions to produce new states
     def apply_action(self, state, action):
         state_dict = dict(state)
         parts = action.split('_')  
@@ -221,25 +221,7 @@ class stateGenerator:
         for action in actions:
             self.perform_action(action)
             time.sleep(.5)   
-    
-    def matrix_to_state(self, matrix):
-        read_state = {}
-        for module_idx, row in enumerate(matrix):
-            for port_idx, val in enumerate(row):
 
-                # 1 indicates the presence of the control module
-                if val == 1:
-                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M0_P0_O1'
-
-                elif val != 0:
-                    # Decodes actuator number and port number
-                    binary_val = format(val, '08b')
-                    port_num = int(binary_val[-3:], 2)
-                    module_num = int(binary_val[:5], 2)
-
-                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M{module_num}_P{port_num}_O1'
-
-        return frozenset(read_state.items())
     
     def export_transitions(self, filename='transitions.csv'):
         # Prepare data 
@@ -261,23 +243,15 @@ if __name__ == "__main__":
     num_modules = 3
     stateGen = stateGenerator(num_modules)
     #modelCheck = ModelChecker(stateGen.current_state, stateGen.transitions)
-    #stateGen.export_transitions()
+    stateGen.export_transitions()
 
     
     while True:
-        initial_matrix = [[20, 0, 1],
-                 [0,  0, 0],  # Actuator 2 
-                  [0,  0, 0]    
-        ]
-        matrix = [[1, 0, 0],
-                 [0,  0, 0],  # Actuator 2 
-                  [12,  0, 0]    
+        matrix = [[20, 1, 0],
+                    [0,  0, 0],  
+                    [0,  0, 0]    
         ]
 
-        desired_state = stateGen.matrix_to_state(matrix)
-        initial_state = stateGen.matrix_to_state(initial_matrix)
-
-        #run_model_checker(stateGen.transitions, initial_state, desired_state)
         #matrix = read_matrix_from_serial(port='/dev/cu.usbmodem14401', baudrate=9600)
         stateGen.action_config_matrix(matrix)
         time.sleep(10)

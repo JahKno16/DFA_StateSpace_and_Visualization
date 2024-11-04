@@ -32,7 +32,6 @@ class sendCommands:
                 ser.flush()
                 print(f"Sent: {row_data.strip()}") 
         ser.write("END\n".encode('utf-8'))
-        print("Sent: END")
 
 
 if __name__ == '__main__':

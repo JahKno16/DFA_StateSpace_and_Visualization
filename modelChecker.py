@@ -125,7 +125,7 @@ def run_model_checker(transitions, initial_states, desired_state, printStat = Tr
         exit()
 
 
-    return verified,state_Path, action_Path 
+    return verified, state_Path, action_Path 
 
 def load_data(file_path):
     """This function loads in the pre-defined state transitions. The file path is passed in main."""
