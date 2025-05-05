@@ -55,12 +55,18 @@ class DFA:
                     read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M0_P0_O1'
 
                 elif val != 0:
-                    # Decodes actuator number and port number
+                    if val < 0:     #If value is negative, switch orientation
+                        val = -val
+                        orient = 2
+                    else:
+                        orient = 1
+
+                     # Decodes actuator number and port number
                     binary_val = format(val, '08b')
                     port_num = int(binary_val[-3:], 2)
                     module_num = int(binary_val[:5], 2)
 
-                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M{module_num}_P{port_num}_O1'
+                    read_state[f'M{module_idx+1}_P{port_idx+1}'] = f'M{module_num}_P{port_num}_O{orient}'
 
         return frozenset(read_state.items())
 
@@ -89,7 +95,7 @@ class DFA:
                         actions.append(f'connect_M{module_idx+1}_P{port_idx+1}_M{module_num}_P{port_num}_O1')
                         print(f'M{module_idx+1}_P{port_idx+1}_M{module_num}_P{port_num}')
                 else: 
-                    # If status of port changes (value to zero), disconnect actuator 
+                    # If status of port changes (from a value to zero), disconnect actuator 
                     if occupied_key in self.occupied:
                         actions.append(f'disconnect_M{module_idx+1}_P{port_idx+1}')
                         self.occupied.pop(occupied_key)
@@ -98,7 +104,6 @@ class DFA:
         for action in actions:
             self.perform_action(action)
             time.sleep(.5)
-
 
 if __name__ == "__main__":
     dfa = DFA()
@@ -109,7 +114,7 @@ if __name__ == "__main__":
     serial_port = '/dev/cu.usbmodem14401'
     command = sendCommands(modules=5, port=serial_port, baudrate=9600)
 
-    initial_matrix = [[0, 1, 0],
+    initial_matrix = [[0, 1, 0],        # Could be read from control module
                     [0,  0, 0],  
                     [12,  0, 0]    
         ]
@@ -136,12 +141,12 @@ if __name__ == "__main__":
                 time.sleep(.5)
                 command.write_actions_matrix(action)    # Sends "command matrix"
                 commandSent = True
-            
-            if current_state == states[idx]:   # Continue to next action once state has been reached
-                break
                
             plot.plotData(matrix)      ## Plots data read on ports from matrix over time
             time.sleep(1)
+
+            if current_state == states[idx]:   # Continue to next action once state has been reached
+                break
             
     plot.export_data()         ## Once complete, export the readData vs time csv
 

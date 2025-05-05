@@ -9,7 +9,6 @@ class sendCommands:
 
 
     def actions_to_matrix(self, actions):
-
         control_matrix = [[0 for _ in range(self.col) ] for _ in range(self.rows)] # Initializes matrix with 0
         for action in actions:
             parts = action.split('_') 
@@ -20,6 +19,8 @@ class sendCommands:
                 control_matrix[module_idx][port_idx] = 1
             if parts[0] == 'disconnect':
                 control_matrix[module_idx][port_idx] = -1
+
+                #To be added: Angle/position commands
         
         return control_matrix
 

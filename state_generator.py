@@ -33,7 +33,7 @@ class stateGenerator:
                 state_items = [[] for _ in range(len(modules)-1)]
                 for i, module in enumerate(modules):
                     
-                    # Generate all control module element in states
+                    # Generate all control module elements in states
                     if i == 0:
                         for connections in product(self.femalePorts, self.orientations):
                             fPort, orientation = connections
@@ -212,7 +212,7 @@ class stateGenerator:
 
         print(actions)
 
-        ## Ensures that control module is first action
+        ## Makes sure that control module is first action (for visualization)
         for action in actions:
             if "M0" in action:
                 self.perform_action(action)
@@ -242,9 +242,7 @@ class stateGenerator:
 if __name__ == "__main__":
     num_modules = 3
     stateGen = stateGenerator(num_modules)
-    #modelCheck = ModelChecker(stateGen.current_state, stateGen.transitions)
     stateGen.export_transitions()
-
     
     while True:
         matrix = [[20, 1, 0],

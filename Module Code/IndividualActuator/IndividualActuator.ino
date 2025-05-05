@@ -1,19 +1,22 @@
 #include <Wire.h>
 
 // Actuator ID
-#define ACTUATOR_ID 3
+#define ACTUATOR_ID 1
 
 // Connector Pin Assignment
-const int INPUT_PORTS[3] = {1, 2, 0};
-const int OUTPUT_PORTS[3] = {8, 8, 10};
+const int INPUT_PORTS[3] = {1, 2};
+const int OUTPUT_PORTS[3] = {8, 9};
 
 // Solenoid Pins
 const int AIR_IN_PIN = 6;
 const int AIR_OUT_PIN = 7;
 
 // Connector Pins
-const int lockPin = 3;
-const int unlockPin = 9;
+const int lock1Pin = 10;
+const int unlock1Pin = 3;
+
+// Bending Sensor Pin
+const int bendPin = 0;
 
 //Local version of current configuration matrix
 
@@ -22,6 +25,7 @@ volatile int receivedData = 0;
 
 int incomingMatrix[3];
 
+int angle = 0;
 int inputData[3] = {0, 0, 0};
 bool pairMode[3] = {false, false, false};
 bool handShake[3] = {false, false, false};
@@ -34,29 +38,41 @@ void setup() {
   Wire.onRequest(requestEvent);
   Wire.onReceive(receiveEvent);
 
+  // Bending Sensor
+  pinMode(bendPin, INPUT);
+
   // Solenoid pin 
   pinMode(AIR_IN_PIN, OUTPUT);
   digitalWrite(AIR_IN_PIN, HIGH);
 
-  pinMode(lockPin, OUTPUT);
-  pinMode(unlockPin, OUTPUT);
+  pinMode(lock1Pin, OUTPUT);
+  pinMode(unlock1Pin, OUTPUT);
 
-  digitalWrite(unlockPin, HIGH);
+  digitalWrite(unlock1Pin, HIGH);
   delay(1000);
-  digitalWrite(unlockPin, LOW);
+  digitalWrite(unlock1Pin, LOW);
 }
 
 
 void loop() {
-  // Send data to each output port
-  for (int i = 0; i < 1; i++) {
+  /*
+  // Read and Write each port (1, 2, 4, 5)
+  for (int i = 0; i < 2; i++) {
     readPorts(INPUT_PORTS[i], i);
     writePorts(OUTPUT_PORTS[i], i + 4, i);
     Serial.println(inputData[i]); 
     delay(50);
   }
   conditionCode(); 
+  */
 
+  /*readAngle();
+  Serial.println(angle);
+  */
+  //disconnect(1);
+  //delay(5000);
+  //disconnect(1);
+  //delay(5000);
   delay(50);
 }
 
@@ -146,7 +162,7 @@ void readPorts(int port, int idx) {
             }
             delay(150);
           }
-          connect();
+          connect(port);
           if (int(receivedData) == 5){
             receivedData == 20;
           }
@@ -169,8 +185,6 @@ void pairingMode() {
   for(int i = 0; i < 3; i++){
     if(digitalRead(OUTPUT_PORTS[i]) == HIGH){
       pairMode[i] = true;
-      //Serial.print("Pairing mode started on port: ");
-      //Serial.println(4+i);
     }
   }
 }
@@ -196,27 +210,44 @@ void decodeData(int data){
     Serial.println(connectorNumber);
 }
 
-
-void connect(){
-      for(int i = 0; i < 15; i++) {
-        analogWrite(unlockPin, 50);
-        delay(75);
-        analogWrite(unlockPin, 0);
-        digitalWrite(lockPin, HIGH);
-        delay(150);
-        digitalWrite(lockPin, LOW);
-      }
+void readAngle(){
+  int bendValue = analogRead(bendPin);
+  angle = map(bendValue, 0, 1023, 0, 180);
 }
 
-void disconnect(){
-      for(int i = 0; i < 15; i++) {
-        analogWrite(lockPin, 100);
-        delay(100);
-        analogWrite(lockPin, 0);
-        digitalWrite(unlockPin, HIGH);
-        delay(200);
-        digitalWrite(unlockPin, LOW);
+
+void connect(int port){
+  switch (port){
+    case 1:
+      for(int i = 0; i < 10; i++) {
+        analogWrite(unlock1Pin, 50);
+        delay(75);
+        analogWrite(unlock1Pin, 0);
+        analogWrite(lock1Pin, 1023);
+        delay(150);
+        analogWrite(lock1Pin, 0);
       }
+      break;
+    default:
+      break;
+}
+}
+
+void disconnect(int port){
+  switch (port){
+    case 1:
+      for(int i = 0; i < 10; i++) {
+        analogWrite(lock1Pin, 150);
+        delay(75);
+        analogWrite(lock1Pin, 0);
+        analogWrite(unlock1Pin, 1023);
+        delay(150);
+        analogWrite(unlock1Pin, 0);
+      }
+      break;
+    default:
+      break;
+  }
 }
 
 void requestEvent() {
@@ -242,9 +273,8 @@ void receiveEvent(int numByte){
 
 
 void conditionCode(){
-  // Module 1, disconnect
   if(connected[0] == true && connected[3] == true && ACTUATOR_ID == 3){
     Serial.println("Disconnecting");
-    disconnect();
+    disconnect(1);
   }
 }

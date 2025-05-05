@@ -34,7 +34,7 @@ void loop() {
   }
 
   updateConfigArrays();
-  send_matrix();
+  //send_matrix();
 
   receiveCommands();
   printCommandMatrix();

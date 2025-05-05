@@ -85,7 +85,7 @@ class ModularVisualizer:
             rect = patches.Rectangle((x, y), width, height, edgecolor='black', facecolor='lightblue')
 
         # Apply rotation transformation
-        
+
         if orientation == 1:
 
             ##Temp
@@ -153,6 +153,6 @@ class ModularVisualizer:
 if __name__ == "__main__":
     # Example usage:
     visualizer = ModularVisualizer()
-    state = [('M1_P1', 'M0_P0_O1') , ('M3_P1', 'M1_P4_O1')]
+    state = [('M1_P1', 'M0_P0_O1') , ('M1_P2', 'M2_P4_O1')]
     visualizer.visualize_configuration(state)
     time.sleep(20)
